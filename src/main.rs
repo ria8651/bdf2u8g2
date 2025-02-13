@@ -58,7 +58,11 @@ fn main() {
         return;
     }
 
-    let output = matches.get_one::<PathBuf>("output").unwrap().clone();
+    let mut output = matches.get_one::<PathBuf>("output").unwrap().clone();
+    if output.is_dir() {
+        output.push(bdf_file.file_stem().unwrap());
+        output.set_extension("u8g2font");
+    }
 
     let mut char_set = Vec::<char>::new();
     if let Some(paths) = matches.get_many::<PathBuf>("range-file") {
@@ -125,12 +129,7 @@ fn main() {
         let height: u32 = bb.size.y.try_into().expect("height not positive?");
         let offset_x = bb.offset.x;
         let offset_y = bb.offset.y;
-        // let advance = width as i32;
         let advance = glyph.device_width.x;
-        // let offset_x = 0;
-        // let offset_y = 0;
-        // let advance = 0;
-        // println!("{}: {:?}", c, advance);
 
         // bitmap
         let mut length_pairs: Vec<(u32, u32)> = Vec::new();
@@ -201,7 +200,7 @@ fn main() {
 
     // check for missing characters
     if !hash_char_set.is_empty() {
-        print!("missing characters: ");
+        print!("missing glyphs: ");
         for c in hash_char_set.iter() {
             print!("{}", c);
         }

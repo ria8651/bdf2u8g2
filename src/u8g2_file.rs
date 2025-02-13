@@ -45,9 +45,6 @@ impl U8g2File {
             let glyph = &self.short_glyphs[i];
 
             let no_jump = i == self.short_glyphs.len() - 1;
-            if no_jump {
-                println!("last glyph: {:?}", &glyph);
-            }
             bytes.extend_from_slice(&glyph.to_bytes(&self.header, no_jump));
         }
 
@@ -86,10 +83,9 @@ impl U8g2File {
 
             offset += jump as usize;
         }
-        // offset = bytes[long_offset]; // jump table
         offset = long_offset + 4;
         loop {
-            let codepoint = u16::from_le_bytes([bytes[offset], bytes[offset + 1]]);
+            let codepoint = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]);
             print!("{}", char::from_u32(codepoint as u32).unwrap());
 
             let jump = bytes[offset + 2];
@@ -116,7 +112,6 @@ impl U8g2File {
         assert!(U8G2_HEADER_SIZE == 23);
         let h = self.header.as_bytes();
         assert!(U8G2_HEADER_SIZE == h.len());
-        println!("header: {:x?}", h);
         bytes.splice(0..0, h.iter().copied());
 
         bytes
@@ -189,15 +184,6 @@ impl U8g2Glyph {
         // make sure no partial bytes are left
         bits.write(7, 0).unwrap();
         let mut bytes = bits.into_writer();
-
-        // check header
-        if no_jump {
-            print!("glyph: ");
-            for byte in &bytes {
-                print!("{:08b} ", byte);
-            }
-            println!();
-        }
 
         // update jump
         if !no_jump {
