@@ -48,25 +48,33 @@ impl U8g2File {
             bytes.extend_from_slice(&glyph.to_bytes(&self.header, no_jump));
         }
 
-        // jump table
-        let long_offset = bytes.len();
-        let jump: u16 = u16::try_from(4).unwrap();
-        let final_unicode: u16 = 0xffff;
-        bytes.extend_from_slice(&jump.to_be_bytes());
-        bytes.extend_from_slice(&final_unicode.to_be_bytes());
+        let long_offset = if !self.long_glyphs.is_empty() {
+            let long_offset = bytes.len();
 
-        // long glyphs
-        for i in 0..self.long_glyphs.len() {
-            let glyph = &self.long_glyphs[i];
-            let no_jump = i == self.long_glyphs.len() - 1;
-            bytes.extend_from_slice(&glyph.to_bytes(&self.header, no_jump));
-        }
+            // jump table
+            let jump: u16 = u16::try_from(4).unwrap();
+            let final_unicode: u16 = 0xffff;
+            bytes.extend_from_slice(&jump.to_be_bytes());
+            bytes.extend_from_slice(&final_unicode.to_be_bytes());
+
+            // long glyphs
+            for i in 0..self.long_glyphs.len() {
+                let glyph = &self.long_glyphs[i];
+                let no_jump = i == self.long_glyphs.len() - 1;
+                bytes.extend_from_slice(&glyph.to_bytes(&self.header, no_jump));
+            }
+
+            Some(long_offset)
+        } else {
+            None
+        };
 
         // serves as test that font file is searchable
         print!("checking font file, found: ");
         let mut offset = 0;
         let mut upper_a = None;
         let mut lower_a = None;
+        // check for all short glyphs
         loop {
             let codepoint = bytes[offset];
             if codepoint == b'A' {
@@ -83,17 +91,20 @@ impl U8g2File {
 
             offset += jump as usize;
         }
-        offset = long_offset + 4;
-        loop {
-            let codepoint = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]);
-            print!("{}", char::from_u32(codepoint as u32).unwrap());
+        // check for all long glyphs
+        if let Some(long_offset) = long_offset {
+            offset = long_offset + 4; // skip jump table
+            loop {
+                let codepoint = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]);
+                print!("{}", char::from_u32(codepoint as u32).unwrap());
 
-            let jump = bytes[offset + 2];
-            if jump == 0 {
-                break;
+                let jump = bytes[offset + 2];
+                if jump == 0 {
+                    break;
+                }
+
+                offset += jump as usize;
             }
-
-            offset += jump as usize;
         }
         println!();
 
@@ -101,7 +112,7 @@ impl U8g2File {
         self.header.glyph_cnt = (self.short_glyphs.len() + self.long_glyphs.len()) as u8;
         self.header.start_pos_upper_a = upper_a.unwrap().try_into().unwrap();
         self.header.start_pos_lower_a = lower_a.unwrap().try_into().unwrap();
-        self.header.start_pos_unicode = long_offset.try_into().unwrap();
+        self.header.start_pos_unicode = long_offset.unwrap_or(0).try_into().unwrap();
 
         // make two byte header variables big-endian *byte* order TODO: why?
         self.header.start_pos_upper_a = self.header.start_pos_upper_a.swap_bytes();
@@ -109,8 +120,8 @@ impl U8g2File {
         self.header.start_pos_unicode = self.header.start_pos_unicode.swap_bytes();
 
         // insert header
-        assert!(U8G2_HEADER_SIZE == 23);
         let h = self.header.as_bytes();
+        assert!(U8G2_HEADER_SIZE == 23);
         assert!(U8G2_HEADER_SIZE == h.len());
         bytes.splice(0..0, h.iter().copied());
 

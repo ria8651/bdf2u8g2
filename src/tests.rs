@@ -6,16 +6,16 @@ use u8g2_fonts::{
 
 struct File;
 impl Font for File {
-    const DATA: &'static [u8] = include_bytes!("../wenquanyi_12pt.u8g2font");
+    const DATA: &'static [u8] = include_bytes!("../icons.u8g2font");
 }
 
 #[test]
 fn test_file() {
     let font = FontRenderer::new::<File>();
 
-    let text = "Hfelyg?.";
-    let pos = Point::new(0, 16);
-    let vertical_pos = VerticalPosition::Baseline;
+    let text = "!";
+    let pos = Point::new(0, 24);
+    let vertical_pos = VerticalPosition::Top;
 
     println!(
         "{:?}",

@@ -16,3 +16,4 @@ bdf2u8g2 [OPTIONS] --bdf-file <FILE>
 - [ ] Optimize the RLE encoding by trying different bit widths
 - [ ] Add customization of the u8g2 font header
 - [ ] Less unwraps and panics
+- [ ] Actaully generate the jump table
