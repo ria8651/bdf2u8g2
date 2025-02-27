@@ -14,7 +14,7 @@ fn test_file() {
     let font = FontRenderer::new::<File>();
 
     let text = "!";
-    let pos = Point::new(0, 24);
+    let pos = Point::new(0, 0);
     let vertical_pos = VerticalPosition::Top;
 
     println!(

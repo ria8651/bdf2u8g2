@@ -1,3 +1,4 @@
+use bdf_parser::Property;
 use clap::{Arg, ArgAction, Command};
 use std::{collections::HashSet, fs, path::PathBuf};
 use u8g2_file::{U8g2File, U8g2Glyph, U8g2Header, Unicode};
@@ -232,6 +233,18 @@ fn convert_bdf_to_u8g2(input: &PathBuf, output: &PathBuf, char_set: &[char]) {
     }
 
     // header
+    let ascent_a = short_glyphs
+        .iter()
+        .find(|g| matches!(g.unicode, Unicode::Single(b'A')))
+        .map(|g| g.height as i32 + g.offset_y)
+        .or_else(|| font.properties.try_get(Property::FontAscent).ok())
+        .expect("couldn't find ascent_a");
+    let descent_g = short_glyphs
+        .iter()
+        .find(|g| matches!(g.unicode, Unicode::Single(b'g')))
+        .map(|g| -g.offset_y)
+        .or_else(|| font.properties.try_get(Property::FontDescent).ok())
+        .expect("couldn't find descent_g");
     let header = U8g2Header {
         // seems kind of useless as it only goes up to 255 and isn't used in the parser
         glyph_cnt: 0,
@@ -248,9 +261,9 @@ fn convert_bdf_to_u8g2(input: &PathBuf, output: &PathBuf, char_set: &[char]) {
         max_char_height: font.metadata.bounding_box.size.y.try_into().unwrap(),
         x_offset: font.metadata.bounding_box.offset.x.try_into().unwrap(),
         y_offset: font.metadata.bounding_box.offset.y.try_into().unwrap(),
+        ascent_a: ascent_a.try_into().unwrap(),
+        descent_g: descent_g.try_into().unwrap(),
         // not sure why these are needed when the info is in each glyph? seems to work fine without them
-        ascent_a: 0,
-        descent_g: 0,
         ascent_para: 0,
         descent_para: 0,
         //
